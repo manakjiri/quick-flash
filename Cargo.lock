@@ -1344,6 +1344,7 @@ dependencies = [
  "probe-rs",
  "rust-s3",
  "serde",
+ "serde_json",
  "toml",
 ]
 
