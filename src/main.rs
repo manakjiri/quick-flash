@@ -1,13 +1,26 @@
 use anyhow;
+use clap::{self, Parser};
 use etcetera::{self, AppStrategy, AppStrategyArgs};
 use probe_rs::probe::{list::Lister, Probe};
 use probe_rs::Permissions;
 use std::fs;
 use std::io::{self, BufRead};
 use std::path::{self, Path};
+use std::process::exit;
 
 mod config;
+mod storage;
 mod utils;
+
+/// Flash centrally hosted firmware binaries with one command
+#[derive(clap::Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    firmware_name: Option<String>,
+
+    #[arg(long)]
+    list: bool,
+}
 
 fn main() -> anyhow::Result<()> {
     /*let s3_path = "test.file";
@@ -20,6 +33,8 @@ fn main() -> anyhow::Result<()> {
     //assert_eq!(response_data.status_code(), 200);
     //assert_eq!(test, response_data.as_slice());
 
+    let args = Args::parse();
+
     let strategy = etcetera::choose_app_strategy(AppStrategyArgs {
         top_level_domain: "cz".to_string(),
         author: "manakjiri".to_string(),
@@ -29,7 +44,23 @@ fn main() -> anyhow::Result<()> {
     let creds_path = strategy.config_dir().join("credentials.toml");
 
     let creds = config::get_credentials(&creds_path)?;
-    let bucket = creds.init_bucket()?;
+    let storage = storage::Storage::new(&creds)?;
+
+    if args.list {
+        match args.firmware_name {
+            Some(name) => {
+                for version in storage.list_firmware_versions(&name)? {
+                    println!("{}", version);
+                }
+            }
+            None => {
+                for name in storage.list_firmwares()? {
+                    println!("{}", name);
+                }
+            }
+        }
+        exit(0);
+    }
 
     /* let response_data = bucket.list("".to_string(), None)?;
     println!(

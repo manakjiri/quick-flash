@@ -1,22 +1,21 @@
 use crate::utils;
 use anyhow;
-use s3;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
 #[derive(Serialize, Deserialize)]
-enum StorageType {
+pub enum StorageType {
     R2,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Credentials {
-    storage_type: StorageType,
-    storage_name: String,
-    storage_account_id: String,
-    storage_access_key: String,
-    storage_secret_key: String,
+    pub storage_type: StorageType,
+    pub storage_name: String,
+    pub storage_account_id: String,
+    pub storage_access_key: String,
+    pub storage_secret_key: String,
 }
 
 impl Credentials {
@@ -33,27 +32,6 @@ impl Credentials {
             storage_access_key,
             storage_secret_key,
         }
-    }
-
-    pub fn init_bucket(&self) -> Result<Box<s3::Bucket>, s3::error::S3Error> {
-        let region = match self.storage_type {
-            StorageType::R2 => s3::Region::R2 {
-                account_id: self.storage_account_id.clone(),
-            },
-        };
-
-        let bucket = s3::Bucket::new(
-            &self.storage_name,
-            region,
-            s3::creds::Credentials {
-                access_key: Some(self.storage_access_key.clone()),
-                secret_key: Some(self.storage_secret_key.clone()),
-                security_token: None,
-                session_token: None,
-                expiration: None,
-            },
-        )?;
-        Ok(bucket)
     }
 }
 

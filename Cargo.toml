@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.89"
-clap = "4.5.17"
+clap = { version = "4.5.17", features = ["derive"] }
 etcetera = "0.8.0"
 probe-rs = "0.24.0"
 rust-s3 = {version = "0.35", default-features = false, features = ["sync", "sync-native-tls"] }
