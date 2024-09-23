@@ -131,7 +131,7 @@ jobs:
           sudo apt update
           sudo apt install -y libudev-dev
         # Only install on Ubuntu
-        if: (matrix.os == 'ubuntu-latest') || (matrix.os == 'ubuntu-20.04')
+        if: (matrix.runner == 'ubuntu-latest') || (matrix.runner == 'ubuntu-20.04')
       - name: Build artifacts
         run: |
           # Actually do builds and make zips and whatnot
