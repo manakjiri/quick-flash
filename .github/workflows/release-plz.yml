@@ -19,6 +19,11 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install libudev
+        run: |
+          sudo apt update
+          sudo apt install -y libudev-dev
+
       - name: Run release-plz
         uses: MarcoIeni/release-plz-action@v0.5
         env:

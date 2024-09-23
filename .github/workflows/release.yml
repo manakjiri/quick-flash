@@ -42,7 +42,7 @@ on:
   pull_request:
   push:
     tags:
-      - '**[0-9]+.[0-9]+.[0-9]+*'
+      - "**[0-9]+.[0-9]+.[0-9]+*"
 
 jobs:
   # Run 'cargo dist plan' (or host) to determine what tasks we need to do
@@ -126,9 +126,12 @@ jobs:
           pattern: artifacts-*
           path: target/distrib/
           merge-multiple: true
-      - name: Install dependencies
+      - name: Install libudev (linux)
         run: |
-          ${{ matrix.packages_install }}
+          sudo apt update
+          sudo apt install -y libudev-dev
+        # Only install on Ubuntu
+        if: (matrix.os == 'ubuntu-latest') || (matrix.os == 'ubuntu-20.04')
       - name: Build artifacts
         run: |
           # Actually do builds and make zips and whatnot
