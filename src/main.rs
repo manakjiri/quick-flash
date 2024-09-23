@@ -24,8 +24,13 @@ struct Args {
     #[arg(long, short)]
     list: bool,
 
+    /// Deletes the cache directory prior to running the rest of the program
     #[arg(long)]
     clear_cache: bool,
+
+    /// Deletes the credentials file prior to running the rest of the program
+    #[arg(long)]
+    clear_credentials: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -45,6 +50,13 @@ fn main() -> anyhow::Result<()> {
         eprintln!("Clearing cache directory...");
         fs::remove_dir_all(&cache_base).context("Failed to clear cache directory")?;
         fs::create_dir_all(&cache_base)?;
+    }
+
+    if args.clear_credentials {
+        eprintln!("Clearing credentials...");
+        if creds_path.exists() {
+            fs::remove_file(&creds_path).context("Failed to remove credentials file")?;
+        }
     }
 
     let creds = config::get_credentials(&creds_path).context("Failed to read credentials")?;
@@ -125,6 +137,9 @@ fn main() -> anyhow::Result<()> {
     // Get a list of all available debug probes.
     let lister = Lister::new();
     let probes = lister.list_all();
+    if probes.is_empty() {
+        anyhow::bail!("No debug probes found")
+    }
     // Use the first probe found.
     let probe = probes[0].open().context("Failed to open probe")?;
 

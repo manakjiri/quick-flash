@@ -81,11 +81,11 @@ Storage Account ID: <your account ID>
 Storage Access Key: <bucket access key>
 Storage Secret Key: <bucket secret key>
 Saving credentials to /home/<user>/.config/quick-flash/credentials.toml...
-Listing 1 available firmware name:
-  - blinky
 ```
 
-simply copy-paste each field. The `credentials.toml` file location is dependent on the host OS. Using the `--list` option confirms that the storage connection works. If your bucket is empty, the tool will display an error message.
+simply copy-paste each field. The `credentials.toml` file location is dependent on the host OS. Using the `--list` option confirms that the storage connection works (see below). If your bucket is empty, the tool will display an error message.
+
+If you input something incorrectly, you can modify the credentials file directly or abort the prompt by `Ctrl+C` and run the program again. You can remove stored credentials using `--clear-credentials`.
 
 ## 4. Basic usage
 
