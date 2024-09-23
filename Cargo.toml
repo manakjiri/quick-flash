@@ -3,6 +3,8 @@ name = "quick-flash"
 version = "0.1.0"
 edition = "2021"
 repository = "https://github.com/manakjiri/quick-flash"
+description = "Flash centrally hosted firmware binaries with one command"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
