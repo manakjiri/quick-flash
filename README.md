@@ -2,6 +2,8 @@
 
 [![Continuous Deployment](https://github.com/manakjiri/quick-flash/actions/workflows/release-plz.yml/badge.svg)](https://github.com/manakjiri/quick-flash/actions/workflows/release-plz.yml)
 
+[![Demo video](https://raw.githubusercontent.com/manakjiri/quick-flash/main/docs/media/demo-preview.png)](https://raw.githubusercontent.com/manakjiri/quick-flash/main/docs/media/demo.mp4)
+
 A simple and portable program which pulls built firmware binaries from an [S3-compatible object storage API](https://github.com/durch/rust-s3) and downloads them onto the target using a [probe-rs](https://github.com/probe-rs/probe-rs) compatible debug probe.
 
 The idea is to solve the problem of distributing up-to-date binaries within a hardware dev-team, which should aid testing and debugging efforts.
