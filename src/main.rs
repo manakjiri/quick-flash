@@ -24,6 +24,15 @@ struct Args {
     #[arg(long, short)]
     list: bool,
 
+    // TODO add '--probe VID:PID' or '--probe VID:PID:Serial'.
+    /// Select a specific probe in the list, accepts '--probe Serial'
+    #[arg(long)]
+    probe: Option<String>,
+
+    /// Lists all available probes
+    #[arg(long)]
+    list_probes: bool,
+
     /// Deletes the cache directory prior to running the rest of the program
     #[arg(long)]
     clear_cache: bool,
@@ -33,8 +42,36 @@ struct Args {
     clear_credentials: bool,
 }
 
+fn get_probes() -> anyhow::Result<Vec<probe_rs::probe::DebugProbeInfo>> {
+    let lister = Lister::new();
+    let probes = lister.list_all();
+    if probes.is_empty() {
+        anyhow::bail!("No debug probes found")
+    }
+    Ok(probes)
+}
+
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
+
+    if args.list_probes {
+        let probes = get_probes()?;
+        println!(
+            "VID:PID:Serial (name) listing of {} available debug probe{}:",
+            probes.len(),
+            probes.len().eq(&1).then_some("").unwrap_or("s")
+        );
+        for probe in probes {
+            println!(
+                "  - {:04X}:{:04X}:{} ({})",
+                probe.vendor_id,
+                probe.product_id,
+                probe.serial_number.unwrap_or_default(),
+                probe.identifier
+            );
+        }
+        exit(0);
+    }
 
     let strategy = etcetera::choose_app_strategy(AppStrategyArgs {
         top_level_domain: "cz".to_string(),
@@ -134,14 +171,18 @@ fn main() -> anyhow::Result<()> {
     };
 
     /* Finally onto the firmware flashing itself */
-    // Get a list of all available debug probes.
-    let lister = Lister::new();
-    let probes = lister.list_all();
-    if probes.is_empty() {
-        anyhow::bail!("No debug probes found")
-    }
+    let probes = get_probes()?;
+
     // Use the first probe found.
-    let probe = probes[0].open().context("Failed to open probe")?;
+    let probe = match args.probe {
+        //TODO add VID:PID:Serial parsing
+        Some(ref p) => probes
+            .iter()
+            .find(|probe| probe.serial_number.as_ref().expect("Probe without serial") == p)
+            .context("Probe not found")?,
+        None => &probes[0],
+    };
+    let probe = probe.open().context("Failed to open probe")?;
 
     let firmware = storage
         .download_firmware(&firmware_name, &firmware_version, &cache_base)
@@ -151,8 +192,8 @@ fn main() -> anyhow::Result<()> {
     let mut session = probe
         .attach_under_reset(&firmware.chip, Permissions::default())
         .context("Failed to attach probe")?;
-    // Download the firmware binary.
 
+    // Download the firmware binary.
     eprintln!(
         "Downloading {}/{} to target chip {}...",
         firmware.name, firmware.version, firmware.chip

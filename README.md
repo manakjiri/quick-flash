@@ -1,7 +1,5 @@
 # quick-flash
 
-https://github.com/user-attachments/assets/e2e84a3b-b173-4807-9484-bfd546a5afee
-
 [![Continuous Deployment](https://github.com/manakjiri/quick-flash/actions/workflows/release-plz.yml/badge.svg)](https://github.com/manakjiri/quick-flash/actions/workflows/release-plz.yml)
 
 A simple and portable program which pulls built firmware binaries from an [S3-compatible object storage API](https://github.com/durch/rust-s3) and downloads them onto the target using a [probe-rs](https://github.com/probe-rs/probe-rs) compatible debug probe.
@@ -121,3 +119,11 @@ Listing 2 versions of firmware "blinky"
   - fast
   - slow
 ```
+
+**Flash the firmware**
+
+```
+quick-flash blinky fast
+```
+
+see the demonstration video at the top of this page.
