@@ -40,6 +40,10 @@ struct Args {
     /// Deletes the credentials file prior to running the rest of the program
     #[arg(long)]
     clear_credentials: bool,
+
+    /// Use this flag to assert the nreset & ntrst pins during attaching the probe to the chip
+    #[arg(long, short('r'))]
+    connect_under_reset: bool,
 }
 
 fn get_probes() -> anyhow::Result<Vec<probe_rs::probe::DebugProbeInfo>> {
@@ -189,9 +193,11 @@ fn main() -> anyhow::Result<()> {
         .context("Failed to download firmware")?;
 
     // Attach to a chip.
-    let mut session = probe
-        .attach_under_reset(&firmware.chip, Permissions::default())
-        .context("Failed to attach probe")?;
+    let mut session = match args.connect_under_reset {
+        true => probe.attach_under_reset(&firmware.chip, Permissions::default()),
+        false => probe.attach(&firmware.chip, Permissions::default()),
+    }
+    .context("Failed to attach probe")?;
 
     // Download the firmware binary.
     eprintln!(
