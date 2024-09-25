@@ -2,25 +2,24 @@
 
 ## [0.2.1] - 2024-09-25
 
-### 🚀 Features
+### Features
 
 - Add probe and list-probes options
 
-### 📚 Documentation
+### Documentation
 
 - Add demo video
 - Add demo in webp
 
-
 ## [0.2.0] - 2024-09-24
 
-### 🐛 Bug Fixes
+### Bug Fixes
 
 - Remove runtime dependency on libssl
 
 ## [0.1.2] - 2024-09-23
 
-### 🚀 Features
+### Features
 
 - Add clear creds option
 
@@ -28,7 +27,7 @@
 
 ## [0.1.1] - 2024-09-23
 
-### ⚙️ Miscellaneous Tasks
+### Miscellaneous Tasks
 
 - Release ([#5](https://github.com/manakjiri/quick-flash/pull/5))
 - Fix linux matrix entry
@@ -37,7 +36,7 @@
 
 ## [0.1.0] - 2024-09-23
 
-### ⚙️ Miscellaneous Tasks
+### Miscellaneous Tasks
 
 - Setup the release automation and dependabot
 - Add libudev install
