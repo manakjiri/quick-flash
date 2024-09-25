@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.1] - 2024-09-25
+
+### 🚀 Features
+
+- Add probe and list-probes options
+
+### 📚 Documentation
+
+- Add demo video
+- Add demo in webp
+
+
 ## [0.2.0] - 2024-09-24
 
 ### 🐛 Bug Fixes
