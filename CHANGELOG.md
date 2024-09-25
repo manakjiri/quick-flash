@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.2.2] - 2024-09-25
+
+### Features
+
+- Add connect-under-reset
+
+### Documentation
+
+- Update changelog format
+
+
 ## [0.2.1] - 2024-09-25
 
 ### Features
