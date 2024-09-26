@@ -1,5 +1,6 @@
 # Changelog
 
+
 ## [0.2.2] - 2024-09-25
 
 ### Features
