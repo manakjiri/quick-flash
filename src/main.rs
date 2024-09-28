@@ -193,6 +193,7 @@ fn main() -> anyhow::Result<()> {
         .context("Failed to download firmware")?;
 
     // Attach to a chip.
+    eprintln!("Attaching to target...");
     let mut session = match args.connect_under_reset {
         true => probe.attach_under_reset(&firmware.chip, Permissions::default()),
         false => probe.attach(&firmware.chip, Permissions::default()),
