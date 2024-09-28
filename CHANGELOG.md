@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3] - 2024-09-28
+
+### Miscellaneous Tasks
+
+- Enable checking on the main branch also
+
+
 ## [0.2.2] - 2024-09-25
 
 ### Features
