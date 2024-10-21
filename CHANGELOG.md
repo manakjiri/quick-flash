@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.3] - 2024-10-21
+
+### Features
+
+- add 'attaching to target' message to make some error messages less confusing
 
 ## [0.2.2] - 2024-09-25
 
@@ -10,7 +15,6 @@
 ### Documentation
 
 - Update changelog format
-
 
 ## [0.2.1] - 2024-09-25
 
