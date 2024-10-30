@@ -1,11 +1,10 @@
 use anyhow::{self, Context};
 use clap::{self, Parser};
-use etcetera::{self, AppStrategy, AppStrategyArgs};
 use probe_rs::flashing::{
     download_file_with_options, DownloadOptions, FlashProgress, Format, ProgressEvent,
 };
-use probe_rs::probe::list::Lister;
 use probe_rs::Permissions;
+use quick_flash::{get_probes, BaseDirs};
 use std::fs;
 use std::process::exit;
 
@@ -46,15 +45,6 @@ struct Args {
     connect_under_reset: bool,
 }
 
-fn get_probes() -> anyhow::Result<Vec<probe_rs::probe::DebugProbeInfo>> {
-    let lister = Lister::new();
-    let probes = lister.list_all();
-    if probes.is_empty() {
-        anyhow::bail!("No debug probes found")
-    }
-    Ok(probes)
-}
-
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
 
@@ -77,20 +67,13 @@ fn main() -> anyhow::Result<()> {
         exit(0);
     }
 
-    let strategy = etcetera::choose_app_strategy(AppStrategyArgs {
-        top_level_domain: "cz".to_string(),
-        author: "manakjiri".to_string(),
-        app_name: "quick-flash".to_string(),
-    })?;
-    fs::create_dir_all(strategy.config_dir()).context("Failed to create config directory")?;
-    let creds_path = strategy.config_dir().join("credentials.toml");
-    let cache_base = strategy.cache_dir().join("firmware");
-    fs::create_dir_all(&cache_base).context("Failed to create cache directory")?;
+    let base_dirs = BaseDirs::new()?;
 
     if args.clear_cache {
         eprintln!("Clearing cache directory...");
-        fs::remove_dir_all(&cache_base).context("Failed to clear cache directory")?;
-        fs::create_dir_all(&cache_base)?;
+        base_dirs
+            .clear_firmware_cache()
+            .context("Failed to clear firmware cache directory")?;
     }
 
     if args.clear_credentials {
@@ -189,7 +172,7 @@ fn main() -> anyhow::Result<()> {
     let probe = probe.open().context("Failed to open probe")?;
 
     let firmware = storage
-        .download_firmware(&firmware_name, &firmware_version, &cache_base)
+        .download_firmware(&firmware_name, &firmware_version, cache_base)
         .context("Failed to download firmware")?;
 
     // Attach to a chip.
