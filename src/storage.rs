@@ -1,4 +1,4 @@
-use crate::config::{Credentials, StorageType};
+use crate::credentials::{Credentials, StorageType};
 use anyhow::{self, Context};
 use s3;
 use serde::{Deserialize, Serialize};

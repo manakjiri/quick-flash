@@ -8,10 +8,6 @@ use quick_flash::{get_probes, BaseDirs};
 use std::fs;
 use std::process::exit;
 
-mod config;
-mod storage;
-mod utils;
-
 /// Flash centrally hosted firmware binaries with one command
 #[derive(clap::Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -83,7 +79,7 @@ fn main() -> anyhow::Result<()> {
         }
     }
 
-    let creds = config::get_credentials(&creds_path).context("Failed to read credentials")?;
+    let creds = credentials::get_credentials(&creds_path).context("Failed to read credentials")?;
     let storage = storage::Storage::new(&creds).context("Failed to create storage client")?;
 
     let firmwares = storage

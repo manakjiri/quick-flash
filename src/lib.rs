@@ -3,6 +3,11 @@ use etcetera::{self, AppStrategy, AppStrategyArgs};
 use probe_rs::probe::{list::Lister, DebugProbeInfo};
 use std::{fs, path::PathBuf};
 
+mod credentials;
+mod credentials_manager;
+mod storage;
+mod utils;
+
 pub struct BaseDirs {
     pub config_dir: PathBuf,
     pub firmware_cache_dir: PathBuf,
