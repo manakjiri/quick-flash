@@ -1,5 +1,5 @@
 use anyhow::{self, Context};
-use chrono::{Timelike, Utc};
+use chrono::Utc;
 use std::path::PathBuf;
 
 use crate::credentials::Credentials;
@@ -25,6 +25,15 @@ impl CredentialsManager {
     }
 
     pub fn add(&self, creds: Credentials) -> anyhow::Result<()> {
+        if !self.base_path.exists() {
+            std::fs::create_dir_all(&self.base_path)
+                .context("Failed to create credentials directory")?;
+        }
+
+        if creds.user_storage_name.is_empty() {
+            anyhow::bail!("User storage name cannot be empty");
+        }
+
         /* check if credentials with the same name do not exist already */
         self.get_all().and_then(|existing_creds| {
             if existing_creds
@@ -34,7 +43,7 @@ impl CredentialsManager {
                 anyhow::bail!("Credentials with the same name already exist");
             }
 
-            let name = Utc::now().format("%Y-%m-%d_%H-%M-%S").to_string();
+            let name = Utc::now().format("%Y-%m-%d_%H-%M-%S.toml").to_string();
             let path = self.base_path.join(name);
             creds.write_to_path(&path)
         })

@@ -72,7 +72,7 @@ pub fn get_credentials_from_command_line() -> anyhow::Result<Credentials> {
     let storage_secret_key = utils::read_line()?;
     eprint!(
         "Optionally, name the storage for future reference [{}]: ",
-        storage_name
+        &storage_name
     );
     let user_storage_name = utils::read_line().unwrap_or(storage_name.clone());
 

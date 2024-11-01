@@ -7,7 +7,7 @@ use probe_rs::Permissions;
 use quick_flash::credentials::get_credentials_from_command_line;
 use quick_flash::credentials_manager::CredentialsManager;
 use quick_flash::storage::Storage;
-use quick_flash::{get_probes, BaseDirs};
+use quick_flash::{flash_firmware, get_probes, BaseDirs};
 use std::process::exit;
 
 /// Flash centrally hosted firmware binaries with one command
@@ -81,19 +81,27 @@ fn main() -> anyhow::Result<()> {
     } */
 
     let creds_manager = CredentialsManager::new(base_dirs.creds_dir);
-    let mut all_creds = creds_manager.get_all()?;
+    let mut all_creds = creds_manager
+        .get_all()
+        .context("Failed to load saved credentials")?;
 
     if all_creds.len() == 0 {
-        let creds = get_credentials_from_command_line()?;
-        creds_manager.add(creds);
+        let creds = get_credentials_from_command_line()
+            .context("Failed to read credentials from the command line")?;
+        creds_manager
+            .add(creds)
+            .context("Failed to save new credentials")?;
+        eprintln!("Credentials saved successfully");
         all_creds = creds_manager.get_all()?;
     }
 
     if all_creds.len() > 1 {
-        anyhow::bail!("Credentials management is not supported in this version");
+        anyhow::bail!("Multiple credentials management is not supported in this version");
     }
 
     let creds = all_creds.get(0).unwrap();
+
+    eprintln!("Connecting to \"{}\" storage...", creds.user_storage_name);
     let storage = Storage::new(&creds).context("Failed to init storage client")?;
 
     let firmwares = storage
@@ -188,6 +196,10 @@ fn main() -> anyhow::Result<()> {
             &base_dirs.firmware_cache_dir,
         )
         .context("Failed to download firmware")?;
+
+    flash_firmware(probe, firmware, args.connect_under_reset, &|s| {
+        eprintln!("{}", s);
+    })?;
 
     Ok(())
 }

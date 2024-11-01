@@ -1,4 +1,4 @@
-use anyhow::{self, Context, Ok};
+use anyhow::{self, Context};
 use etcetera::{self, AppStrategy, AppStrategyArgs};
 use probe_rs::{
     flashing::{download_file_with_options, DownloadOptions, FlashProgress, Format, ProgressEvent},
@@ -61,9 +61,10 @@ pub fn flash_firmware(
     probe: Probe,
     firmware: Firmware,
     connect_under_reset: bool,
+    progress_callback: &'static dyn Fn(String),
 ) -> anyhow::Result<()> {
     // Attach to a chip.
-    eprintln!("Attaching to target...");
+    progress_callback("Attaching to target...".to_string());
     let mut session = match connect_under_reset {
         true => probe.attach_under_reset(&firmware.chip, Permissions::default()),
         false => probe.attach(&firmware.chip, Permissions::default()),
@@ -71,14 +72,14 @@ pub fn flash_firmware(
     .context("Failed to attach probe")?;
 
     // Download the firmware binary.
-    eprintln!(
+    progress_callback(format!(
         "Downloading {}/{} to target chip {}...",
         firmware.name, firmware.version, firmware.chip
-    );
+    ));
     let mut options = DownloadOptions::default();
     options.progress = Some(FlashProgress::new(|e| match e {
-        ProgressEvent::StartedErasing => eprintln!("Flash erasing..."),
-        ProgressEvent::FinishedErasing => eprintln!("Flash programming..."),
+        ProgressEvent::StartedErasing => progress_callback("Flash erasing...".to_string()),
+        ProgressEvent::FinishedErasing => progress_callback("Flash programming...".to_string()),
         _ => {}
     }));
     options.verify = true;
@@ -86,7 +87,7 @@ pub fn flash_firmware(
     download_file_with_options(&mut session, firmware.path, Format::Elf, options)
         .context("Failed to flash firmware")?;
 
-    eprintln!("Resetting target...");
+    progress_callback("Resetting target...".to_string());
     session.core(0)?.reset()?;
 
     Ok(())
