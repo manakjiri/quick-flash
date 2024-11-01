@@ -19,7 +19,7 @@ impl CredentialsManager {
             .context("Failed to read from credentials directory")?
             .map(|entry| {
                 let path = entry?.path();
-                Ok(Credentials::read_from_path(&path)?)
+                Credentials::read_from_path(&path)
             })
             .collect()
     }

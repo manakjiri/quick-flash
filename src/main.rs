@@ -1,9 +1,5 @@
 use anyhow::{self, Context};
 use clap::{self, Parser};
-use probe_rs::flashing::{
-    download_file_with_options, DownloadOptions, FlashProgress, Format, ProgressEvent,
-};
-use probe_rs::Permissions;
 use quick_flash::credentials::get_credentials_from_command_line;
 use quick_flash::credentials_manager::CredentialsManager;
 use quick_flash::storage::Storage;
@@ -50,7 +46,7 @@ fn main() -> anyhow::Result<()> {
         println!(
             "VID:PID:Serial (name) listing of {} available debug probe{}:",
             probes.len(),
-            probes.len().eq(&1).then_some("").unwrap_or("s")
+            if probes.len().eq(&1) { "" } else { "s" }
         );
         for probe in probes {
             println!(
@@ -85,7 +81,7 @@ fn main() -> anyhow::Result<()> {
         .get_all()
         .context("Failed to load saved credentials")?;
 
-    if all_creds.len() == 0 {
+    if all_creds.is_empty() {
         let creds = get_credentials_from_command_line()
             .context("Failed to read credentials from the command line")?;
         creds_manager
@@ -99,10 +95,10 @@ fn main() -> anyhow::Result<()> {
         anyhow::bail!("Multiple credentials management is not supported in this version");
     }
 
-    let creds = all_creds.get(0).unwrap();
+    let creds = all_creds.first().unwrap();
 
     eprintln!("Connecting to \"{}\" storage...", creds.user_storage_name);
-    let storage = Storage::new(&creds).context("Failed to init storage client")?;
+    let storage = Storage::new(creds).context("Failed to init storage client")?;
 
     let firmwares = storage
         .list_firmwares()
@@ -117,7 +113,7 @@ fn main() -> anyhow::Result<()> {
         println!(
             "Listing {} available firmware name{}:",
             firmwares.len(),
-            firmwares.len().eq(&1).then_some("").unwrap_or("s")
+            if firmwares.len().eq(&1) { "" } else { "s" }
         );
         for name in storage.list_firmwares()? {
             println!("  - {}", name);
@@ -149,7 +145,7 @@ fn main() -> anyhow::Result<()> {
         println!(
             "Listing {} version{} of firmware \"{}\"",
             versions.len(),
-            versions.len().eq(&1).then_some("").unwrap_or("s"),
+            if versions.len().eq(&1) { "" } else { "s" },
             firmware_name
         );
         for version in versions {

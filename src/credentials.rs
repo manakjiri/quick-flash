@@ -41,7 +41,7 @@ impl Credentials {
     }
 
     pub fn read_from_path(path: &Path) -> anyhow::Result<Self> {
-        let contents = fs::read_to_string(&path).context(format!(
+        let contents = fs::read_to_string(path).context(format!(
             "Failed to read credentials file {}",
             path.display()
         ))?;

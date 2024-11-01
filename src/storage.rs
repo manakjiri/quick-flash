@@ -58,16 +58,16 @@ impl Storage {
     }
 
     pub fn list_firmwares(&self) -> anyhow::Result<Vec<String>> {
-        Ok(self.list_common_prefixes("".to_string())?)
+        self.list_common_prefixes("".to_string())
     }
 
     pub fn list_firmware_versions(&self, firmware_name: &str) -> anyhow::Result<Vec<String>> {
         let mut firmware_name = firmware_name.to_owned();
-        firmware_name.push_str("/");
+        firmware_name.push('/');
         Ok(self
             .list_common_prefixes(firmware_name.clone())?
             .iter()
-            .map(|p| p.strip_prefix(&firmware_name).unwrap_or(&p).to_owned())
+            .map(|p| p.strip_prefix(&firmware_name).unwrap_or(p).to_owned())
             .collect())
     }
 
