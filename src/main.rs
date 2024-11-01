@@ -1,17 +1,10 @@
 use anyhow::{self, Context};
 use clap::{self, Parser};
-use etcetera::{self, AppStrategy, AppStrategyArgs};
-use probe_rs::flashing::{
-    download_file_with_options, DownloadOptions, FlashProgress, Format, ProgressEvent,
-};
-use probe_rs::probe::list::Lister;
-use probe_rs::Permissions;
-use std::fs;
+use quick_flash::credentials::get_credentials_from_command_line;
+use quick_flash::credentials_manager::CredentialsManager;
+use quick_flash::storage::Storage;
+use quick_flash::{flash_firmware, get_probes, BaseDirs};
 use std::process::exit;
-
-mod config;
-mod storage;
-mod utils;
 
 /// Flash centrally hosted firmware binaries with one command
 #[derive(clap::Parser, Debug)]
@@ -37,22 +30,12 @@ struct Args {
     #[arg(long)]
     clear_cache: bool,
 
-    /// Deletes the credentials file prior to running the rest of the program
+    /* /// Deletes the credentials file prior to running the rest of the program
     #[arg(long)]
-    clear_credentials: bool,
-
+    clear_credentials: bool, */
     /// Use this flag to assert the nreset & ntrst pins during attaching the probe to the chip
     #[arg(long, short('r'))]
     connect_under_reset: bool,
-}
-
-fn get_probes() -> anyhow::Result<Vec<probe_rs::probe::DebugProbeInfo>> {
-    let lister = Lister::new();
-    let probes = lister.list_all();
-    if probes.is_empty() {
-        anyhow::bail!("No debug probes found")
-    }
-    Ok(probes)
 }
 
 fn main() -> anyhow::Result<()> {
@@ -63,7 +46,7 @@ fn main() -> anyhow::Result<()> {
         println!(
             "VID:PID:Serial (name) listing of {} available debug probe{}:",
             probes.len(),
-            probes.len().eq(&1).then_some("").unwrap_or("s")
+            if probes.len().eq(&1) { "" } else { "s" }
         );
         for probe in probes {
             println!(
@@ -77,31 +60,45 @@ fn main() -> anyhow::Result<()> {
         exit(0);
     }
 
-    let strategy = etcetera::choose_app_strategy(AppStrategyArgs {
-        top_level_domain: "cz".to_string(),
-        author: "manakjiri".to_string(),
-        app_name: "quick-flash".to_string(),
-    })?;
-    fs::create_dir_all(strategy.config_dir()).context("Failed to create config directory")?;
-    let creds_path = strategy.config_dir().join("credentials.toml");
-    let cache_base = strategy.cache_dir().join("firmware");
-    fs::create_dir_all(&cache_base).context("Failed to create cache directory")?;
+    let base_dirs = BaseDirs::new()?;
 
     if args.clear_cache {
         eprintln!("Clearing cache directory...");
-        fs::remove_dir_all(&cache_base).context("Failed to clear cache directory")?;
-        fs::create_dir_all(&cache_base)?;
+        base_dirs
+            .clear_firmware_cache()
+            .context("Failed to clear firmware cache directory")?;
     }
 
-    if args.clear_credentials {
+    /* if args.clear_credentials {
         eprintln!("Clearing credentials...");
         if creds_path.exists() {
             fs::remove_file(&creds_path).context("Failed to remove credentials file")?;
         }
+    } */
+
+    let creds_manager = CredentialsManager::new(base_dirs.creds_dir);
+    let mut all_creds = creds_manager
+        .get_all()
+        .context("Failed to load saved credentials")?;
+
+    if all_creds.is_empty() {
+        let creds = get_credentials_from_command_line()
+            .context("Failed to read credentials from the command line")?;
+        creds_manager
+            .add(creds)
+            .context("Failed to save new credentials")?;
+        eprintln!("Credentials saved successfully");
+        all_creds = creds_manager.get_all()?;
     }
 
-    let creds = config::get_credentials(&creds_path).context("Failed to read credentials")?;
-    let storage = storage::Storage::new(&creds).context("Failed to create storage client")?;
+    if all_creds.len() > 1 {
+        anyhow::bail!("Multiple credentials management is not supported in this version");
+    }
+
+    let creds = all_creds.first().unwrap();
+
+    eprintln!("Connecting to \"{}\" storage...", creds.user_storage_name);
+    let storage = Storage::new(creds).context("Failed to init storage client")?;
 
     let firmwares = storage
         .list_firmwares()
@@ -116,7 +113,7 @@ fn main() -> anyhow::Result<()> {
         println!(
             "Listing {} available firmware name{}:",
             firmwares.len(),
-            firmwares.len().eq(&1).then_some("").unwrap_or("s")
+            if firmwares.len().eq(&1) { "" } else { "s" }
         );
         for name in storage.list_firmwares()? {
             println!("  - {}", name);
@@ -148,7 +145,7 @@ fn main() -> anyhow::Result<()> {
         println!(
             "Listing {} version{} of firmware \"{}\"",
             versions.len(),
-            versions.len().eq(&1).then_some("").unwrap_or("s"),
+            if versions.len().eq(&1) { "" } else { "s" },
             firmware_name
         );
         for version in versions {
@@ -189,35 +186,16 @@ fn main() -> anyhow::Result<()> {
     let probe = probe.open().context("Failed to open probe")?;
 
     let firmware = storage
-        .download_firmware(&firmware_name, &firmware_version, &cache_base)
+        .download_firmware(
+            &firmware_name,
+            &firmware_version,
+            &base_dirs.firmware_cache_dir,
+        )
         .context("Failed to download firmware")?;
 
-    // Attach to a chip.
-    eprintln!("Attaching to target...");
-    let mut session = match args.connect_under_reset {
-        true => probe.attach_under_reset(&firmware.chip, Permissions::default()),
-        false => probe.attach(&firmware.chip, Permissions::default()),
-    }
-    .context("Failed to attach probe")?;
-
-    // Download the firmware binary.
-    eprintln!(
-        "Downloading {}/{} to target chip {}...",
-        firmware.name, firmware.version, firmware.chip
-    );
-    let mut options = DownloadOptions::default();
-    options.progress = Some(FlashProgress::new(|e| match e {
-        ProgressEvent::StartedErasing => eprintln!("Flash erasing..."),
-        ProgressEvent::FinishedErasing => eprintln!("Flash programming..."),
-        _ => {}
-    }));
-    options.verify = true;
-    options.do_chip_erase = true;
-    download_file_with_options(&mut session, firmware.path, Format::Elf, options)
-        .context("Failed to flash firmware")?;
-
-    eprintln!("Resetting target...");
-    session.core(0)?.reset()?;
+    flash_firmware(probe, firmware, args.connect_under_reset, &|s| {
+        eprintln!("{}", s);
+    })?;
 
     Ok(())
 }
