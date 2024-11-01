@@ -1,15 +1,20 @@
-use anyhow::{self, Context};
+use anyhow::{self, Context, Ok};
 use etcetera::{self, AppStrategy, AppStrategyArgs};
-use probe_rs::probe::{list::Lister, DebugProbeInfo};
+use probe_rs::{
+    flashing::{download_file_with_options, DownloadOptions, FlashProgress, Format, ProgressEvent},
+    probe::{list::Lister, DebugProbeInfo, Probe},
+    Permissions,
+};
 use std::{fs, path::PathBuf};
+use storage::Firmware;
 
-mod credentials;
-mod credentials_manager;
-mod storage;
+pub mod credentials;
+pub mod credentials_manager;
+pub mod storage;
 mod utils;
 
 pub struct BaseDirs {
-    pub config_dir: PathBuf,
+    pub creds_dir: PathBuf,
     pub firmware_cache_dir: PathBuf,
 }
 
@@ -22,15 +27,15 @@ impl BaseDirs {
         })
         .context("Failed to resolve application directories")?;
 
-        let config_dir = strategy.config_dir().join("credentials");
+        let creds_dir = strategy.config_dir().join("credentials");
         let firmware_cache_dir = strategy.cache_dir().join("firmware");
 
-        fs::create_dir_all(&config_dir).context("Failed to create config directory")?;
+        fs::create_dir_all(&creds_dir).context("Failed to create config directory")?;
         fs::create_dir_all(&firmware_cache_dir)
             .context("Failed to create firmware cache directory")?;
 
         Ok(BaseDirs {
-            config_dir,
+            creds_dir,
             firmware_cache_dir,
         })
     }
@@ -50,4 +55,39 @@ pub fn get_probes() -> anyhow::Result<Vec<DebugProbeInfo>> {
         anyhow::bail!("No debug probes found")
     }
     Ok(probes)
+}
+
+pub fn flash_firmware(
+    probe: Probe,
+    firmware: Firmware,
+    connect_under_reset: bool,
+) -> anyhow::Result<()> {
+    // Attach to a chip.
+    eprintln!("Attaching to target...");
+    let mut session = match connect_under_reset {
+        true => probe.attach_under_reset(&firmware.chip, Permissions::default()),
+        false => probe.attach(&firmware.chip, Permissions::default()),
+    }
+    .context("Failed to attach probe")?;
+
+    // Download the firmware binary.
+    eprintln!(
+        "Downloading {}/{} to target chip {}...",
+        firmware.name, firmware.version, firmware.chip
+    );
+    let mut options = DownloadOptions::default();
+    options.progress = Some(FlashProgress::new(|e| match e {
+        ProgressEvent::StartedErasing => eprintln!("Flash erasing..."),
+        ProgressEvent::FinishedErasing => eprintln!("Flash programming..."),
+        _ => {}
+    }));
+    options.verify = true;
+    options.do_chip_erase = true;
+    download_file_with_options(&mut session, firmware.path, Format::Elf, options)
+        .context("Failed to flash firmware")?;
+
+    eprintln!("Resetting target...");
+    session.core(0)?.reset()?;
+
+    Ok(())
 }

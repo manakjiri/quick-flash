@@ -4,8 +4,10 @@ use probe_rs::flashing::{
     download_file_with_options, DownloadOptions, FlashProgress, Format, ProgressEvent,
 };
 use probe_rs::Permissions;
+use quick_flash::credentials::get_credentials_from_command_line;
+use quick_flash::credentials_manager::CredentialsManager;
+use quick_flash::storage::Storage;
 use quick_flash::{get_probes, BaseDirs};
-use std::fs;
 use std::process::exit;
 
 /// Flash centrally hosted firmware binaries with one command
@@ -32,10 +34,9 @@ struct Args {
     #[arg(long)]
     clear_cache: bool,
 
-    /// Deletes the credentials file prior to running the rest of the program
+    /* /// Deletes the credentials file prior to running the rest of the program
     #[arg(long)]
-    clear_credentials: bool,
-
+    clear_credentials: bool, */
     /// Use this flag to assert the nreset & ntrst pins during attaching the probe to the chip
     #[arg(long, short('r'))]
     connect_under_reset: bool,
@@ -72,15 +73,28 @@ fn main() -> anyhow::Result<()> {
             .context("Failed to clear firmware cache directory")?;
     }
 
-    if args.clear_credentials {
+    /* if args.clear_credentials {
         eprintln!("Clearing credentials...");
         if creds_path.exists() {
             fs::remove_file(&creds_path).context("Failed to remove credentials file")?;
         }
+    } */
+
+    let creds_manager = CredentialsManager::new(base_dirs.creds_dir);
+    let mut all_creds = creds_manager.get_all()?;
+
+    if all_creds.len() == 0 {
+        let creds = get_credentials_from_command_line()?;
+        creds_manager.add(creds);
+        all_creds = creds_manager.get_all()?;
     }
 
-    let creds = credentials::get_credentials(&creds_path).context("Failed to read credentials")?;
-    let storage = storage::Storage::new(&creds).context("Failed to create storage client")?;
+    if all_creds.len() > 1 {
+        anyhow::bail!("Credentials management is not supported in this version");
+    }
+
+    let creds = all_creds.get(0).unwrap();
+    let storage = Storage::new(&creds).context("Failed to init storage client")?;
 
     let firmwares = storage
         .list_firmwares()
@@ -168,35 +182,12 @@ fn main() -> anyhow::Result<()> {
     let probe = probe.open().context("Failed to open probe")?;
 
     let firmware = storage
-        .download_firmware(&firmware_name, &firmware_version, cache_base)
+        .download_firmware(
+            &firmware_name,
+            &firmware_version,
+            &base_dirs.firmware_cache_dir,
+        )
         .context("Failed to download firmware")?;
-
-    // Attach to a chip.
-    eprintln!("Attaching to target...");
-    let mut session = match args.connect_under_reset {
-        true => probe.attach_under_reset(&firmware.chip, Permissions::default()),
-        false => probe.attach(&firmware.chip, Permissions::default()),
-    }
-    .context("Failed to attach probe")?;
-
-    // Download the firmware binary.
-    eprintln!(
-        "Downloading {}/{} to target chip {}...",
-        firmware.name, firmware.version, firmware.chip
-    );
-    let mut options = DownloadOptions::default();
-    options.progress = Some(FlashProgress::new(|e| match e {
-        ProgressEvent::StartedErasing => eprintln!("Flash erasing..."),
-        ProgressEvent::FinishedErasing => eprintln!("Flash programming..."),
-        _ => {}
-    }));
-    options.verify = true;
-    options.do_chip_erase = true;
-    download_file_with_options(&mut session, firmware.path, Format::Elf, options)
-        .context("Failed to flash firmware")?;
-
-    eprintln!("Resetting target...");
-    session.core(0)?.reset()?;
 
     Ok(())
 }
