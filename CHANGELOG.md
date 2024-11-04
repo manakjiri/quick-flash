@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.0] - 2024-11-4
+
+### Refactor
+
+- refactored into a library with main components usable independently
+
+### Breaking
+
+- credentials are now stored in a directory to support multiple saved storage credentials
+
 ## [0.2.3] - 2024-10-21
 
 ### Features
