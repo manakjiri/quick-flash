@@ -16,6 +16,10 @@ impl CredentialsManager {
     }
 
     pub fn get_all(&self) -> anyhow::Result<Vec<Credentials>> {
+        if !self.base_path.exists() {
+            return Ok(vec![]);
+        }
+
         self.base_path
             .read_dir()
             .context("Failed to read from credentials directory")?
@@ -85,6 +89,12 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let creds_dir = temp_dir.path().join("creds");
         let creds_manager = CredentialsManager::new(creds_dir.clone());
+        assert_eq!(creds_manager.get_all().unwrap().len(), 0);
+
+        assert_eq!(
+            creds_manager.remove("test").err().unwrap().to_string(),
+            "Failed to read from credentials directory"
+        );
 
         let creds = Credentials::new_r2(
             "test".to_string(),
@@ -121,5 +131,15 @@ mod tests {
         creds_manager.remove("test2").unwrap();
         let all_creds = creds_manager.get_all().unwrap();
         assert_eq!(all_creds.len(), 0);
+
+        assert_eq!(
+            creds_manager.remove("test").err().unwrap().to_string(),
+            "Credentials not found"
+        );
+        assert_eq!(
+            creds_manager.remove("test2").err().unwrap().to_string(),
+            "Credentials not found"
+        );
+        assert_eq!(creds_manager.get_all().unwrap().len(), 0);
     }
 }
