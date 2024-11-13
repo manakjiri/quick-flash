@@ -2,10 +2,7 @@ use crate::credentials::{Credentials, StorageType};
 use anyhow::{self, Context};
 use s3;
 use serde::{Deserialize, Serialize};
-use std::{
-    any,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Firmware {
@@ -25,7 +22,7 @@ pub struct Storage {
 }
 
 impl Storage {
-    pub fn new(creds: &Credentials) -> Result<Self, s3::error::S3Error> {
+    pub fn new(creds: &Credentials) -> anyhow::Result<Self> {
         let region = match creds.storage_type {
             StorageType::R2 => s3::Region::R2 {
                 account_id: creds.storage_account_id.clone(),
