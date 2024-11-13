@@ -28,6 +28,10 @@ toml = "0.8.19"
 openssl = { version = "0.10", features = ["vendored"] }
 chrono = "0.4.38"
 
+[dev-dependencies]
+tempfile = "3.14.0"
+
+
 # The profile that 'cargo dist' will build with
 [profile.dist]
 inherits = "release"

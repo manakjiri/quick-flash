@@ -5,12 +5,12 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Hash)]
 pub enum StorageType {
     R2,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Hash)]
 pub struct Credentials {
     pub user_storage_name: String,
     pub storage_type: StorageType,
