@@ -102,7 +102,10 @@ fn main() -> anyhow::Result<()> {
 
     let firmwares = storage
         .list_firmwares()
-        .context("Failed to fetch firmware names from the Bucket")?;
+        .context("Failed to fetch firmware names from the Bucket")?
+        .iter()
+        .map(|f| f.name.clone())
+        .collect::<Vec<String>>();
 
     if firmwares.is_empty() {
         anyhow::bail!("No firmware found in the Bucket");
@@ -115,7 +118,7 @@ fn main() -> anyhow::Result<()> {
             firmwares.len(),
             if firmwares.len().eq(&1) { "" } else { "s" }
         );
-        for name in storage.list_firmwares()? {
+        for name in firmwares {
             println!("  - {}", name);
         }
         exit(0);
@@ -138,7 +141,10 @@ fn main() -> anyhow::Result<()> {
 
     let versions = storage
         .list_firmware_versions(&firmware_name)
-        .context("Failed to fetch firmware versions from the Bucket")?;
+        .context("Failed to fetch firmware versions from the Bucket")?
+        .iter()
+        .map(|f| f.version.clone())
+        .collect::<Vec<String>>();
 
     /* firmware version list command */
     if args.list && args.firmware_version.is_none() {
