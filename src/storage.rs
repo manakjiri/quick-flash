@@ -1,8 +1,15 @@
 use crate::credentials::{Credentials, StorageType};
 use anyhow::{self, Context};
-use s3;
+use s3::{self, serde_types::Object};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
+pub struct FirmwareMetadata {
+    pub name: String,
+    pub version: String,
+    pub last_modified: String,
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Firmware {
@@ -52,12 +59,14 @@ impl Storage {
     }
 
     fn list_common_prefixes(&self, prefix: String) -> anyhow::Result<Vec<String>> {
-        Ok(self
+        let response = self
             .bucket
             .list(prefix, Some("/".to_string()))?
             .first()
             .cloned()
-            .context("No response data received")?
+            .context("No response data received")?;
+
+        Ok(response
             .common_prefixes
             .context("No common prefixes received")?
             .iter()
@@ -65,18 +74,51 @@ impl Storage {
             .collect())
     }
 
-    pub fn list_firmwares(&self) -> anyhow::Result<Vec<String>> {
-        self.list_common_prefixes("".to_string())
+    fn list_object_metadata(&self, prefix: String) -> anyhow::Result<Vec<FirmwareMetadata>> {
+        let response = self
+            .bucket
+            .list(prefix, None)?
+            .first()
+            .cloned()
+            .context("No response data received")?;
+
+        let filter = |o: &Object| {
+            if let Some(key) = o.key.strip_suffix("/manifest.json") {
+                let parts = key.split("/").collect::<Vec<&str>>();
+                Some(FirmwareMetadata {
+                    name: parts[0].to_owned(),
+                    version: parts[1].to_owned(),
+                    last_modified: o.last_modified.clone(),
+                })
+            } else {
+                None
+            }
+        };
+
+        Ok(response.contents.iter().filter_map(filter).collect())
     }
 
-    pub fn list_firmware_versions(&self, firmware_name: &str) -> anyhow::Result<Vec<String>> {
+    pub fn list_firmwares(&self) -> anyhow::Result<Vec<FirmwareMetadata>> {
+        let prefixes = self.list_common_prefixes("".to_string())?;
+        let mut ret = Vec::<FirmwareMetadata>::new();
+
+        for prefix in prefixes {
+            self.list_object_metadata(prefix)?
+                .iter()
+                .max_by_key(|f| f.last_modified.clone())
+                .map(|f| ret.push(f.clone()));
+        }
+        println!("{:?}", ret);
+        Ok(ret)
+    }
+
+    pub fn list_firmware_versions(
+        &self,
+        firmware_name: &str,
+    ) -> anyhow::Result<Vec<FirmwareMetadata>> {
         let mut firmware_name = firmware_name.to_owned();
         firmware_name.push('/');
-        Ok(self
-            .list_common_prefixes(firmware_name.clone())?
-            .iter()
-            .map(|p| p.strip_prefix(&firmware_name).unwrap_or(p).to_owned())
-            .collect())
+        Ok(self.list_object_metadata(firmware_name.clone())?)
     }
 
     pub fn download_firmware(
