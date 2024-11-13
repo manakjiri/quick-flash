@@ -22,7 +22,7 @@ pub struct Storage {
 }
 
 impl Storage {
-    pub fn new(creds: &Credentials) -> Result<Self, s3::error::S3Error> {
+    pub fn new(creds: &Credentials) -> anyhow::Result<Self> {
         let region = match creds.storage_type {
             StorageType::R2 => s3::Region::R2 {
                 account_id: creds.storage_account_id.clone(),
@@ -41,6 +41,14 @@ impl Storage {
             },
         )?;
         Ok(Storage { bucket })
+    }
+
+    pub fn is_available(&self) -> anyhow::Result<()> {
+        match self.bucket.exists() {
+            Ok(true) => Ok(()),
+            Ok(false) => anyhow::bail!("Bucket does not exist"),
+            Err(e) => Err(e.into()),
+        }
     }
 
     fn list_common_prefixes(&self, prefix: String) -> anyhow::Result<Vec<String>> {

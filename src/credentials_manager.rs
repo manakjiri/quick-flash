@@ -1,8 +1,10 @@
+use crate::credentials::Credentials;
 use anyhow::{self, Context};
 use chrono::Utc;
-use std::path::PathBuf;
-
-use crate::credentials::Credentials;
+use std::{
+    hash::{DefaultHasher, Hash, Hasher},
+    path::PathBuf,
+};
 
 pub struct CredentialsManager {
     base_path: PathBuf,
@@ -14,6 +16,10 @@ impl CredentialsManager {
     }
 
     pub fn get_all(&self) -> anyhow::Result<Vec<Credentials>> {
+        if !self.base_path.exists() {
+            return Ok(vec![]);
+        }
+
         self.base_path
             .read_dir()
             .context("Failed to read from credentials directory")?
@@ -22,6 +28,22 @@ impl CredentialsManager {
                 Credentials::read_from_path(&path)
             })
             .collect()
+    }
+
+    pub fn remove(&self, user_storage_name: &str) -> anyhow::Result<()> {
+        self.base_path
+            .read_dir()
+            .context("Failed to read from credentials directory")?
+            .find(|entry| {
+                let path = entry.as_ref().map_or_else(|_| PathBuf::new(), |e| e.path());
+                Credentials::read_from_path(&path)
+                    .ok()
+                    .map_or(false, |c| c.user_storage_name == user_storage_name)
+            })
+            .context("Credentials not found")?
+            .and_then(|path| std::fs::remove_file(path.path()))
+            .context("Failed to remove credentials file")?;
+        Ok(())
     }
 
     pub fn add(&self, creds: Credentials) -> anyhow::Result<()> {
@@ -43,9 +65,81 @@ impl CredentialsManager {
                 anyhow::bail!("Credentials with the same name already exist");
             }
 
-            let name = Utc::now().format("%Y-%m-%d_%H-%M-%S.toml").to_string();
+            let mut hasher = DefaultHasher::new();
+            creds.hash(&mut hasher);
+
+            let name = format!(
+                "{}_{:0x}.toml",
+                Utc::now().format("%Y-%m-%d_%H-%M-%S"),
+                hasher.finish()
+            );
             let path = self.base_path.join(name);
             creds.write_to_path(&path)
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_credentials_manager() {
+        let temp_dir = tempdir().unwrap();
+        let creds_dir = temp_dir.path().join("creds");
+        let creds_manager = CredentialsManager::new(creds_dir.clone());
+        assert_eq!(creds_manager.get_all().unwrap().len(), 0);
+
+        assert_eq!(
+            creds_manager.remove("test").err().unwrap().to_string(),
+            "Failed to read from credentials directory"
+        );
+
+        let creds = Credentials::new_r2(
+            "test".to_string(),
+            "storage_name".to_string(),
+            "account_id".to_string(),
+            "access_key".to_string(),
+            "secret_key".to_string(),
+        );
+
+        creds_manager.add(creds.clone()).unwrap();
+        let all_creds = creds_manager.get_all().unwrap();
+        assert_eq!(all_creds.len(), 1);
+        assert_eq!(all_creds[0], creds);
+
+        let creds2 = Credentials::new_r2(
+            "test2".to_string(),
+            "storage_name".to_string(),
+            "account_id".to_string(),
+            "access_key".to_string(),
+            "secret_key".to_string(),
+        );
+
+        creds_manager.add(creds2.clone()).unwrap();
+        let all_creds = creds_manager.get_all().unwrap();
+        assert_eq!(all_creds.len(), 2);
+        assert!(all_creds.contains(&creds));
+        assert!(all_creds.contains(&creds2));
+
+        creds_manager.remove("test").unwrap();
+        let all_creds = creds_manager.get_all().unwrap();
+        assert_eq!(all_creds.len(), 1);
+        assert_eq!(all_creds[0].user_storage_name, "test2");
+
+        creds_manager.remove("test2").unwrap();
+        let all_creds = creds_manager.get_all().unwrap();
+        assert_eq!(all_creds.len(), 0);
+
+        assert_eq!(
+            creds_manager.remove("test").err().unwrap().to_string(),
+            "Credentials not found"
+        );
+        assert_eq!(
+            creds_manager.remove("test2").err().unwrap().to_string(),
+            "Credentials not found"
+        );
+        assert_eq!(creds_manager.get_all().unwrap().len(), 0);
     }
 }
