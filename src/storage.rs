@@ -2,7 +2,10 @@ use crate::credentials::{Credentials, StorageType};
 use anyhow::{self, Context};
 use s3;
 use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
+use std::{
+    any,
+    path::{Path, PathBuf},
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Firmware {
@@ -41,6 +44,14 @@ impl Storage {
             },
         )?;
         Ok(Storage { bucket })
+    }
+
+    pub fn is_available(&self) -> anyhow::Result<()> {
+        match self.bucket.exists() {
+            Ok(true) => Ok(()),
+            Ok(false) => anyhow::bail!("Bucket does not exist"),
+            Err(e) => Err(e.into()),
+        }
     }
 
     fn list_common_prefixes(&self, prefix: String) -> anyhow::Result<Vec<String>> {
