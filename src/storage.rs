@@ -103,11 +103,15 @@ impl Storage {
         let mut ret = Vec::<FirmwareMetadata>::new();
 
         for prefix in prefixes {
-            if let Some(f) = self.list_object_metadata(prefix)?
+            if let Some(f) = self
+                .list_object_metadata(prefix)?
                 .iter()
-                .max_by_key(|f| f.last_modified.clone()) { ret.push(f.clone()) }
+                .max_by_key(|f| f.last_modified.clone())
+            {
+                ret.push(f.clone())
+            }
         }
-        println!("{:?}", ret);
+
         Ok(ret)
     }
 
