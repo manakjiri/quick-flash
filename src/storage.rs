@@ -103,10 +103,9 @@ impl Storage {
         let mut ret = Vec::<FirmwareMetadata>::new();
 
         for prefix in prefixes {
-            self.list_object_metadata(prefix)?
+            if let Some(f) = self.list_object_metadata(prefix)?
                 .iter()
-                .max_by_key(|f| f.last_modified.clone())
-                .map(|f| ret.push(f.clone()));
+                .max_by_key(|f| f.last_modified.clone()) { ret.push(f.clone()) }
         }
         println!("{:?}", ret);
         Ok(ret)
@@ -118,7 +117,7 @@ impl Storage {
     ) -> anyhow::Result<Vec<FirmwareMetadata>> {
         let mut firmware_name = firmware_name.to_owned();
         firmware_name.push('/');
-        Ok(self.list_object_metadata(firmware_name.clone())?)
+        self.list_object_metadata(firmware_name.clone())
     }
 
     pub fn download_firmware(
