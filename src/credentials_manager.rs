@@ -37,7 +37,7 @@ impl CredentialsManager {
                     .map_or(false, |c| c.user_storage_name == user_storage_name)
             })
             .context("Credentials not found")?
-            .and_then(|path| std::fs::remove_file(&path.path()))
+            .and_then(|path| std::fs::remove_file(path.path()))
             .context("Failed to remove credentials file")?;
         Ok(())
     }
@@ -66,7 +66,7 @@ impl CredentialsManager {
 
             let name = format!(
                 "{}_{:0x}.toml",
-                Utc::now().format("%Y-%m-%d_%H-%M-%S").to_string(),
+                Utc::now().format("%Y-%m-%d_%H-%M-%S"),
                 hasher.finish()
             );
             let path = self.base_path.join(name);
@@ -110,8 +110,8 @@ mod tests {
         creds_manager.add(creds2.clone()).unwrap();
         let all_creds = creds_manager.get_all().unwrap();
         assert_eq!(all_creds.len(), 2);
-        assert_eq!(all_creds.contains(&creds), true);
-        assert_eq!(all_creds.contains(&creds2), true);
+        assert!(all_creds.contains(&creds));
+        assert!(all_creds.contains(&creds2));
 
         creds_manager.remove("test").unwrap();
         let all_creds = creds_manager.get_all().unwrap();
