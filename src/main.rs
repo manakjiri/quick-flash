@@ -1,4 +1,5 @@
 use anyhow::{self, Context};
+use chrono::DateTime;
 use clap::{self, Parser};
 use quick_flash::credentials::get_credentials_from_command_line;
 use quick_flash::credentials_manager::CredentialsManager;
@@ -36,6 +37,10 @@ struct Args {
     /// Use this flag to assert the nreset & ntrst pins during attaching the probe to the chip
     #[arg(long, short('r'))]
     connect_under_reset: bool,
+
+    /// Show dates of last modification for entries in the list
+    #[arg(long)]
+    dates: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -100,12 +105,12 @@ fn main() -> anyhow::Result<()> {
     eprintln!("Connecting to \"{}\" storage...", creds.user_storage_name);
     let storage = Storage::new(creds).context("Failed to init storage client")?;
 
-    let firmwares = storage
+    let (firmwares, firmwares_modified) = storage
         .list_firmwares()
         .context("Failed to fetch firmware names from the Bucket")?
         .iter()
-        .map(|f| f.name.clone())
-        .collect::<Vec<String>>();
+        .map(|f| (f.name.clone(), f.last_modified))
+        .collect::<(Vec<String>, Vec<i64>)>();
 
     if firmwares.is_empty() {
         anyhow::bail!("No firmware found in the Bucket");
@@ -118,8 +123,17 @@ fn main() -> anyhow::Result<()> {
             firmwares.len(),
             if firmwares.len().eq(&1) { "" } else { "s" }
         );
-        for name in firmwares {
-            println!("  - {}", name);
+        for (name, timestamp) in firmwares.iter().zip(firmwares_modified.iter()) {
+            if args.dates {
+                println!(
+                    "  - {} ({})",
+                    name,
+                    DateTime::from_timestamp(*timestamp, 0)
+                        .ok_or(anyhow::anyhow!("not a timestamp"))?
+                );
+            } else {
+                println!("  - {}", name);
+            }
         }
         exit(0);
     }
@@ -139,12 +153,12 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
-    let versions = storage
+    let (versions, versions_modified) = storage
         .list_firmware_versions(&firmware_name)
         .context("Failed to fetch firmware versions from the Bucket")?
         .iter()
-        .map(|f| f.version.clone())
-        .collect::<Vec<String>>();
+        .map(|f| (f.version.clone(), f.last_modified))
+        .collect::<(Vec<String>, Vec<i64>)>();
 
     /* firmware version list command */
     if args.list && args.firmware_version.is_none() {
@@ -154,8 +168,17 @@ fn main() -> anyhow::Result<()> {
             if versions.len().eq(&1) { "" } else { "s" },
             firmware_name
         );
-        for version in versions {
-            println!("  - {}", version);
+        for (version, timestamp) in versions.iter().zip(versions_modified.iter()) {
+            if args.dates {
+                println!(
+                    "  - {} ({})",
+                    version,
+                    DateTime::from_timestamp(*timestamp, 0)
+                        .ok_or(anyhow::anyhow!("not a timestamp"))?
+                );
+            } else {
+                println!("  - {}", version);
+            }
         }
         exit(0);
     } else if args.list && args.firmware_version.is_some() {
