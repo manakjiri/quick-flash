@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.1] - 2024-11-15
+
+### Features
+
+- Remove credentials by user_storage_name ([#33](https://github.com/manakjiri/quick-flash/pull/33))
+- Retrieve last_modified date from the bucket ([#35](https://github.com/manakjiri/quick-flash/pull/35))
+- Add the --dates option (and refactor internal timestamp handling) ([#36](https://github.com/manakjiri/quick-flash/pull/36))
+
+
 ## [0.3.0] - 2024-11-4
 
 ### Refactor
