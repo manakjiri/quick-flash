@@ -1,5 +1,6 @@
 use crate::credentials::{Credentials, StorageType};
 use anyhow::{self, Context};
+use chrono::{DateTime, Utc};
 use s3::{self, serde_types::Object};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -8,7 +9,7 @@ use std::path::{Path, PathBuf};
 pub struct FirmwareMetadata {
     pub name: String,
     pub version: String,
-    pub last_modified: String,
+    pub last_modified: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -88,7 +89,10 @@ impl Storage {
                 Some(FirmwareMetadata {
                     name: parts[0].to_owned(),
                     version: parts[1].to_owned(),
-                    last_modified: o.last_modified.clone(),
+                    last_modified: DateTime::parse_from_rfc3339(&o.last_modified)
+                        .ok()?
+                        .with_timezone(&Utc)
+                        .timestamp(),
                 })
             } else {
                 None
@@ -106,7 +110,7 @@ impl Storage {
             if let Some(f) = self
                 .list_object_metadata(prefix)?
                 .iter()
-                .max_by_key(|f| f.last_modified.clone())
+                .max_by_key(|f| f.last_modified)
             {
                 ret.push(f.clone())
             }
