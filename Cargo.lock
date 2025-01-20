@@ -683,12 +683,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fallible-iterator"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2acce4a10f12dc2fb14a218589d4f1f62ef011b2d0cc4b3cb1bba8e94da14649"
-
-[[package]]
 name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -781,16 +775,6 @@ dependencies = [
  "cfg-if",
  "libc",
  "wasi",
-]
-
-[[package]]
-name = "gimli"
-version = "0.31.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07e28edb80900c19c28f1072f2e8aeca7fa06b23cd4169cefe1af5aa3260783f"
-dependencies = [
- "fallible-iterator",
- "stable_deref_trait",
 ]
 
 [[package]]
@@ -1118,9 +1102,9 @@ checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 
 [[package]]
 name = "itertools"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
 dependencies = [
  "either",
 ]
@@ -1505,9 +1489,9 @@ checksum = "439ee305def115ba05938db6eb1644ff94165c5ab5e9420d1c1bcedbba909391"
 
 [[package]]
 name = "probe-rs"
-version = "0.25.0"
+version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8f883e25404f0606f5d70b200bd767222c236c83bb883dab763fdcea972c956"
+checksum = "bc5e0a98981ff2000bb7e4531d198dbde9d0e169c8f0be386801f22d911c8168"
 dependencies = [
  "anyhow",
  "async-io",
@@ -1519,7 +1503,6 @@ dependencies = [
  "espflash",
  "flate2",
  "futures-lite",
- "gimli",
  "hidapi",
  "ihex",
  "itertools",
@@ -1527,7 +1510,6 @@ dependencies = [
  "nusb",
  "object",
  "parking_lot",
- "parse_int",
  "probe-rs-target",
  "rmp-serde",
  "scroll",
@@ -1537,16 +1519,15 @@ dependencies = [
  "svg",
  "thiserror",
  "tracing",
- "typed-path",
  "uf2-decode",
  "zerocopy",
 ]
 
 [[package]]
 name = "probe-rs-target"
-version = "0.25.0"
+version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eb4ed7e835072b8c7c2dd084e5c6cb78adc4a80544d6dda35a91db22355bc26b"
+checksum = "a1725a9cbf58efc76d6874729a8ec61fd00d8d6883765a32f4f4bf97e9461a01"
 dependencies = [
  "base64",
  "indexmap",
@@ -2172,12 +2153,6 @@ name = "trim-in-place"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "343e926fc669bc8cde4fa3129ab681c63671bae288b1f1081ceee6d9d37904fc"
-
-[[package]]
-name = "typed-path"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41713888c5ccfd99979fcd1afd47b71652e331b3d4a0e19d30769e80fec76cce"
 
 [[package]]
 name = "typenum"
