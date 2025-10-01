@@ -17,7 +17,7 @@ path = "src/main.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.99"
+anyhow = "1.0.100"
 clap = { version = "4.5.48", features = ["derive"] }
 etcetera = "0.10.0"
 probe-rs = "0.29.1"
