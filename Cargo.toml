@@ -18,7 +18,7 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0.100"
-clap = { version = "4.5.48", features = ["derive"] }
+clap = { version = "4.5.51", features = ["derive"] }
 etcetera = "0.10.0"
 probe-rs = "0.29.1"
 rust-s3 = {version = "0.37", default-features = false, features = ["sync", "sync-native-tls"] }
